@@ -272,6 +272,7 @@ the demo. The script will also prompt you for your Service Account
 install a few community cookbook dependencies. You can do that with the
 `knife` utility,
     ```
+    cd ~/chef-repo
     knife cookbook site install apt
     knife cookbook site install apache2
     ```
@@ -303,7 +304,11 @@ instances, install Apache, and set up a Compute Engine load-balancer.
 1. Ok, let's test it out! Put the public IP address of your load-balancer into
 your browser and take a look at the result. Within a few seconds you should
 start to see a flicker of pages that will randomly bounce across each of your
-instances.
+instances. You can find the public IP address of your load-balancer in the
+Developers Console, or with,
+    ```
+    gcloud compute forwarding-rules get chef-demo-fr | grep IPAddress | awk '{print $2}'
+    ```
 
 ## All done!
 
