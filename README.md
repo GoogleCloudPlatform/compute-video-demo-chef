@@ -73,9 +73,9 @@ as instructed.
 
 1. Before continuing, make sure to record the following information that will
 be required when configuring the demo:
-* Your Google Cloud Platform *Project ID*
-* The Service Account *Client ID* email address (ends with `@developer.gserviceaccount.com`)
-* The full pathname to the corresponding private key file
+ * Your Google Cloud Platform *Project ID*
+ * The Service Account *Client ID* email address (ends with `@developer.gserviceaccount.com`)
+ * The full pathname to the corresponding private key file
 
 ## Required Compute Engine instances
 
@@ -93,7 +93,8 @@ instance parameters.
   Compute Engine instance.
 
 * `gcloud compute`: With this method, you must make sure to specify the
-   appropriate instance parameters to the command.
+   appropriate instance parameters to the command. The demo assumes you will
+   use this method for creating the Server and Workstation.
 
 ## Scopes / Authorization
 
@@ -138,18 +139,25 @@ in your terminal for download. For example,
     chef-server-ctl reconfigure
     ```
 
-1. Lock down the Chef Server's web console. Point your browser to your Chef
-Server's public IP (e.g. https://public-ip:443/) for an HTTPS connection
+1. As instructed on Chef's
+[documentation](http://docs.opscode.com/chef/manage_server_open_source.html#log-in)
+the first thing you should do is to change the default `admin` password. Point
+your browser to your Chef Server's public IP (e.g. https://public-ip:443/)
 and log in with user `admin` and password `p@ssw0rd1`. Once logged in,
 immediately change the `admin` user's password. You can find your Chef
 Server's public IP in the Developers Console, or with,
    ```
-   exit # quit the 'root' user session
+   exit # to quit the 'root' user session
    gcloud compute instances get $(hostname -s) | grep natIP | awk '{print $2}'
    ```
+
 ## Chef Workstation
 
-1. Create the Compute Engine instance
+Now that you have set up the Chef Server, you can proceed to setting up the
+Chef Workstation.  This is the machine that you, as the Chef administrator,
+will use to develop cookbooks and manage your Chef environment.
+
+1. Create the Compute Engine instance, this time specify a Debian 7 instance,
     ```
     # Make sure to use the Debian 7 image for this demo
     gcloud compute instances create chef-workstation --image debian-cloud/global/images/debian-7-v20140606 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
@@ -194,7 +202,11 @@ interact with the Chef Server.
 `$HOME/chef-repo/.chef/admin.pem`.
 
 1. Configure your knife utility. This will prompt you for several configuration
-settings. Below is a slightly modifed example of the set up process,
+settings. Note that when specifying the Chef server URL, make sure to use the
+public IP address rather than the default FQDN.  Unless you do some work work
+to ensure the FQDN resolves to the public IP, your knife command will not be
+able to resolve the name.  Below is a slightly modifed (defaults were removed)
+example of the set up process,
     ```
     knife configure -i
     ```
