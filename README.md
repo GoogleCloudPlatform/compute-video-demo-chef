@@ -1,2 +1,343 @@
-compute-video-demo-chef
-=======================
+## compute-video-demo-chef
+
+This is the supporting documentation for **Using Chef with Google
+Compute Engine**, one of the topics covered in the
+*video-shorts series*, [TODO: insert youtube video link]
+
+The goal of this repository is to provide the extra detail necessary for
+you to completely replicate the recorded demo. The video's main goal
+is to show a quick, fully working demo without bogging you down with all
+of the required details so you can easily see the "Good Stuff".
+
+At the end of the demo, you will have used Chef to automate:
+* Creating 4 Compute Engine instances
+* Installing the Apache web server on each and enabling `mod_headers`
+* Using Ohai and a template to create a custom site page
+* Allowing HTTP traffic to the instances with a custom firewall rule
+* Creating a Compute Engine Load-balancer to distribute traffic over the 4 instances
+
+This is intended to be a fairly trival example. The video and repo show off
+the integration between Chef and Google Compute Engine. This can be the
+foundation for building more real-world configurations.
+
+### Overview
+
+To fully replicate this demo, you will be setting up the Open Source Chef
+Server and a Chef Workstation in your Compute Engine project. Both the
+Chef Server and Chef Client can be downloaded from the
+[Chef Install page](http://www.getchef.com/chef/install/).
+
+The demo will be performed by applying a Chef recipe utilizing
+[Chef Zero](http://www.getchef.com/blog/2013/10/31/chef-client-z-from-zero-to-chef-in-8-5-seconds/)
+from your Chef Workstation. The four Compute Engine instances will be
+bootstrapped into your Chef Server's environment, so even though the demo
+uses Chef Zero, you will still be able to manage the nodes with your Chef
+Server.
+
+The node bootstrapping is accomplished by passing in Chef configuration and
+authorization files when the instances are created. Once these files are in
+place and the instance boots, a custom startup script (see Compute Engine's
+[startup scripts](https://developers.google.com/compute/docs/howtos/startupscript))
+invokes the first `chef-client` run on the instance. An initial `run_list`
+is also provided that applies a demo cookbook.
+
+## Google Cloud Platform Project
+
+1. You will need to create a Google Cloud Platform Project as a first step.
+Make sure you are logged in to your Google Account (gmail, Google+, etc) and
+point your browser to https://console.developers.google.com/. You should see a
+page asking you to create your first Project.
+
+1. When creating a Project, you will see a pop-up dialog box. You can specify
+custom names but the *Project ID* is globally unique across all Google Cloud
+Platform customers.
+
+1. It's OK to create a Project first, but you will need to set up billing
+before you can create any virtual machines with Compute Engine. Look for the
+*Billing* link in the left-hand navigation bar.
+
+1. In order for duplicate this demo, you'll need a
+[Service Account](https://developers.google.com/console/help/#service_accounts)
+created for the appropriate authorization. Navigate to
+*APIs &amp; auth -&gt; Credentials* and under the OAuth section,
+*Create New Client ID*. Make sure to select *Service Account*. Google will
+generate a new private key and prompt you to save the file and let you know
+that it was created with the *notasecret* passphrase. Once you save the key
+file, make sure to record the *Email address* that ends with
+`@developer.gserviceaccount.com` since this will be required in your Chef
+recipes.
+
+1. Next you will want to install the [Cloud SDK](https://developers.google.com/cloud/sdk/)
+and make sure you've successfully authenticated and set your default project ID
+as instructed.
+
+1. Before continuing, make sure to record the following information that will
+be required when configuring the demo:
+* Your Google Cloud Platform *Project ID*
+* The Service Account *Client ID* email address (ends with `@developer.gserviceaccount.com`)
+* The full pathname to the corresponding private key file
+
+## Required Compute Engine instances
+
+To replicate this demo, you will need to create two Compute Engine instances.
+You can either create an instance in the
+[Developers Console](https://console.developers.google.com/) or with the
+`gcloud compute` commmand-line utility. In the sections below, there will be
+information about the specified operating system image to use and other
+instance parameters.
+
+* Developers Console: If you use this method, select the left-hand
+  navigation menu item for *Compute Engine*. In the sub-menu, click on the
+  *VM Instances* option and look for a red button labeled *NEW INSTANCE*. The
+  resulting page will provide all necessary options for creating a new
+  Compute Engine instance.
+
+* `gcloud compute`: With this method, you must make sure to specify the
+   appropriate instance parameters to the command.
+
+## Scopes / Authorization
+
+When creating Compute Engine instances, this demo assumes you will specify the
+authorization scopes for full control of Google Cloud Storage and read-write
+access to Compute Engine.
+
+## Chef Server
+
+1. Create the Compute Engine instance
+    ```
+    # Make sure to use the CentOS 6 image for this demo
+    gcloud compute instances create chef-server --image centos-cloud/global/images/centos-6-v20140606 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
+    ```
+
+1. SSH to your chef server and then become root
+    ```
+    gcloud compute ssh chef-server --zone us-central1-b
+    sudo -i
+    ```
+
+1. Update your system packages
+    ```
+    yum update
+    ```
+
+1. [Download](http://www.getchef.com/chef/install/) the Chef Server. Select
+*Enterprise Linux, Version 6, x86_64* and the latest version. The page
+should provide a link to the RPM package that you can use to copy/paste
+in your terminal for download. For example,
+    ```
+    wget https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chef-server-11.1.1-1.el6.x86_64.rpm
+    ```
+
+1. Install the package
+    ```
+    rpm -i chef-server-11.1.1-1.el6.x86_64.rpm
+    ```
+
+1. Reconfigure the Chef Server as indicated on the download page
+    ```
+    chef-server-ctl reconfigure
+    ```
+
+1. Lock down the Chef Server's web console. Point your browser to your Chef
+Server's public IP (e.g. https://public-ip:443/) for an HTTPS connection
+and log in with user `admin` and password `p@ssw0rd1`. Once logged in,
+immediately change the `admin` user's password. You can find your Chef
+Server's public IP in the Developers Console, or with,
+   ```
+   exit # quit the 'root' user session
+   gcloud compute instances get $(hostname -s) | grep natIP | awk '{print $2}'
+   ```
+## Chef Workstation
+
+1. Create the Compute Engine instance
+    ```
+    # Make sure to use the Debian 7 image for this demo
+    gcloud compute instances create chef-workstation --image debian-cloud/global/images/debian-7-v20140606 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
+    ```
+
+1. SSH to your Chef Workstation
+    ```
+    gcloud compute ssh chef-workstation --zone us-central1-b
+    ```
+
+1. Update your system packages and install dependencies.
+    ```
+    sudo apt-get update
+    sudo apt-get install git build-essential -y
+    ```
+
+1. Install Chef with the omnibus installer script,
+    ```
+    curl -L https://www.opscode.com/chef/install.sh | sudo bash
+    ```
+
+1. The next few steps are derived from following the Chef Workstation
+[installation instructions](http://docs.opscode.com/install_workstation.html)
+When finished, you should have a copy of the Chef Server's "validation" PEM
+file, it's `admin.pem` file, and a `knife.rb` file that allows you to
+interact with the Chef Server.
+
+1. Create and set up the `chef-repo`
+    ```
+    cd $HOME
+    git clone git://github.com/opscode/chef-repo.git
+    mkdir chef-repo/.chef
+    echo ".chef" >> chef-repo/.gitignore
+    ```
+
+1. Copy the Chef Server's validation PEM file
+(`/etc/chef-server/chef-validator.pem`) to the workstation and save it to
+`$HOME/chef-repo/.chef/chef-server-validation.pem`.
+
+1. Similarly, copy the Chef Server's admin PEM file
+(`/etc/chef-server/admin.pem`) to the workstation and save it to
+`$HOME/chef-repo/.chef/admin.pem`.
+
+1. Configure your knife utility. This will prompt you for several configuration
+settings. Below is a slightly modifed example of the set up process,
+    ```
+    knife configure -i
+    ```
+   The session should look similar to,
+    ```
+    WARNING: No knife configuration file found
+    Where should I put the config file? ~/chef-repo/.chef/knife.rb
+    Please enter the chef server URL: https://107.178.217.81:443
+    Please enter a name for the new user: erjohnso
+    Please enter the existing admin name: admin
+    Please enter the location of the existing admin's private key: ~/chef-repo/.chef/admin.pem
+    Please enter the validation clientname: chef-validator
+    Please enter the location of the validation key: ~/chef-repo/.chef/chef-server-validation.pem
+    Please enter the path to a chef repository (or leave blank): ~/chef-repo
+    Creating initial API user...
+    Please enter a password for the new user: xxxxxxxx
+    Created user[erjohnso]
+    Configuration file written to /home/erjohnso/chef-repo/.chef/knife.rb
+    ```
+
+1. You can verify that your workstation has access to the Chef Server by
+using the knife command to query the server. This command should show
+you some information about one of the configured clients on the server,
+    ```
+    knife client show chef-webui
+    ```
+   The out put should look similar to,
+    ```
+    admin:      true
+    chef_type:  client
+    json_class: Chef::ApiClient
+    name:       chef-webui
+    public_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    validator:  false
+    ```
+
+## Cookbook and Demo setup
+
+1. Log into the Chef Workstation and install the ruby gem dependencies
+required to use the
+[Compute Engine LWRP](https://github.com/chef-partners/google-compute-engine),
+    ```
+    sudo /opt/chef/embedded/bin/gem install google-api-client --no-rdoc --no-ri
+    sudo /opt/chef/embedded/bin/gem install fog --no-rdoc --no-ri
+    ```
+
+1. Check out this repositroy so that you can use pre-canned configuration
+and demo files.
+    ```
+    cd $HOME
+    git clone https://github.com/GoogleCloudPlatform/compute-video-demo-chef
+    ```
+
+1. Use the included `install.sh` script to copy the necessary files to run
+the demo. The script will also prompt you for your Service Account
+*Client Email*, *Project ID* and the full path to your *Private Key*,
+    ```
+    cd compute-vide-demo-chef
+    ./install.sh
+    ```
+
+1. Since the demo uses Apache on Debian virtual machines, you'll need to
+install a few community cookbook dependencies. You can do that with the
+`knife` utility,
+    ```
+    knife cookbook site install apt
+    knife cookbook site install apache2
+    ```
+
+1. The install script also created a demo cookbook based on the demo given
+at [ChefConf2014](http://www.youtube.com/watch?v=D2OICR18zIo). You can upload
+this demo cookbook to your Chef server along wth its cookbook dependencies
+with,
+    ```
+    knife cookbook upload chefconf2014 --include-dependencies
+    ```
+
+## Demo time!
+
+You've now completed all of the necessary setup to replicate the demo as
+shown on the video. Now, you'll use LWRP to create and bootstrap the managed
+instances, install Apache, and set up a Compute Engine load-balancer.
+
+1. You should be logged into the Chef Workstation and in your Chef directory,
+    ```
+    cd $HOME/chef-repo
+    ```
+
+1. Next, you'll use *Chef Zero* to apply the demo recipe,
+    ```
+    chef-client -z -o 'gce::gce-demo'
+    ```
+
+1. Ok, let's test it out! Put the public IP address of your load-balancer into
+your browser and take a look at the result. Within a few seconds you should
+start to see a flicker of pages that will randomly bounce across each of your
+instances.
+
+## All done!
+
+That's it for the demo. You just used the Google Compute Engine LWRP to create
+a complete environment consisting of virtual machines (managed by Chef),
+persistent disks, firewall rule, and load-balancer.
+
+You can of course also use the [knife-google](http://docs.opscode.com/plugin_knife_google.html)
+to create Compute Engine instances from your Chef Workstation and bootstrap
+them as part of your Chef environment. But the knife plugin does not support
+features to manage other Compute Engine resources such as load-balancers.
+
+## Cleaning up
+
+When you're done with the demo, make sure to tear down all of your
+instances and clean-up. You will get charged for this usage and you will
+accumulate additional charges if you do not remove these resources.
+
+Fortunately, there is an included recipe for deleting all of the Compute
+Engine resources created during the demo.  Simply use Chef Zero again with
+the clean-up recipe,
+
+```
+chef-client -z -o 'gce::clean-up-demo'
+```
+
+If you also wish to remove the node references in your Chef Server, you can use
+either use the Chef Web Console, or the knife utility from your Workstation,
+
+```
+knife node bulk delete "chef-demo*"
+knife client bulk delete "chef-demo*"
+```
+
+## Contributing
+
+Have a patch that will benefit this project? Awesome! Follow these steps to have it accepted.
+
+1. Please sign our [Contributor License Agreement](CONTRIB.md).
+1. Fork this Git repository and make your changes.
+1. Run the unit tests. (gcimagebundle only)
+1. Create a Pull Request
+1. Incorporate review feedback to your changes.
+1. Accepted!
+
+## License
+All files in this repository are under the
+[Apache License, Version 2.0](LICENSE) unless noted otherwise.
+
