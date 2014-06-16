@@ -38,8 +38,22 @@ The node bootstrapping is accomplished by passing in Chef configuration and
 authorization files when the instances are created. Once these files are in
 place and the instance boots, a custom startup script (see Compute Engine's
 [startup scripts](https://developers.google.com/compute/docs/howtos/startupscript))
-invokes the first `chef-client` run on the instance. An initial `run_list`
-is also provided that applies a demo cookbook.
+invokes the first `chef-client` run on the instance. Since the new instance
+has the proper authorization, it checks in with the Chef Server and becomes
+a managed node. An initial `run_list` is also provided that applies a demo
+cookbook.
+
+However, it is not strictly necessary to run a Chef Server to demonstrate the
+[Compute Engine LWRP](https://github.com/chef-partners/google-compute-engine).
+It is possible to use the LWRP to manage all Compute Engine resources such
+as networks, load-balancers, instances, etc. New instances do not strictly
+need to be bootstrapped into your Chef enrionment. If you exclude the special
+instance attributes `validation_pem`, `client_rb`, and `first_boot_json`
+from your recipe, the new instances will not identify themselves with a
+Chef server.
+
+This demo will assume that you *are* using a Chef Server. Therefore, the
+special instance attributes will be set.
 
 ## Google Cloud Platform Project
 

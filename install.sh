@@ -10,7 +10,8 @@ mydir=$( cd $(dirname $0) ; pwd -P)
 
 cp -R $mydir/cookbooks/chefconf2014 $CHEF_REPO/cookbooks
 pushd $CHEF_REPO/cookbooks
-git clone https://github.com/chef-partners/google-compute-engine gce
+# TODO(erjohnso): using 'tmp' branch until paulrossman fixes firewall
+git clone -b tmp https://github.com/chef-partners/google-compute-engine gce
 popd
 cp $mydir/recipes/* $CHEF_REPO/cookbooks/gce/recipes
 mkdir $DEMO_TMP
