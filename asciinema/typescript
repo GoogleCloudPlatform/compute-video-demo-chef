@@ -1,0 +1,296 @@
+Script started on Mon Jun 16 19:26:06 2014
+$ # This screencast demonstrates how you can use Chef and Google Compute Engine. [A$ # This screencast demonstrates how you can use Chef and Google Compute Engine[K.
+$ # Everything you need to repeat this demo on your own can be found at,
+$ # https://github.com/GoogleCloudPlatform/compute-video-demo-chef
+$ 
+$ # We'll use the Google Compute Engine LWRP to create 4 virtual machines,
+$ # a load-balancer, and open up a firewall rule for HTTP traffic.  The new
+$ # VMs will be bootstrapped into our Chef environment and we'll also install
+$ # t Apache on each one along with a custom site page.
+$ 
+$ # We assume you have already set up your Google Cloud Platform project,
+$ # installed the Open Source Chef Server, created and configured a Chef
+$ # Workstation, and have configured the knife utility.
+$ 
+$ # This screencast picks up at the "Cookbook and Demo setup" section of the
+$ # README.  As such, we are now logged into our configured Chef Workstation
+$ # and are ready to proceed.
+$ 
+$ # Let's just check to make sure we're starting with a clean slate,
+$ knife cookbook list
+
+$ knife n client list
+chef-validator
+chef-webui
+$ # Ok, let's get started! First, let's install a few gems
+$ sudo /opt/chef/embedded/bin/gem install google-api-client --no-rdoc --no-ri      
+
+Successfully installed google-api-client-0.7.1
+1 gem installed
+$ 
+$ sudo /opt/chef/embedded/bin/gem install fog --no-rdoc --no-ri                    
+Successfully installed fog-1.22.1
+1 gem installed
+$ 
+$ # Now, let's check the ou      out the demo repo and run it's    s install script. We'll need ou r [A$ # Now, let's check out the demo repo and run its install script. We'll need ou [K[A$ # Now, let's check out the demo repo and run its install script. We'll need o[K
+[K[A$ # Now, let's check out the demo repo and run its install script. We'll need o       
+$ # need our Google Cloud Platform Project ID, a Service Account Client Email
+$ # address, and theh location of the corresponding private key.
+$ cd
+$ git clone https://github.com/GoogleCloudPlatform/compute-vie deo-e demo-chef
+Cloning into 'compute-video-demo-chef'...
+Username for 'https://github.com': erjohnso
+Password for 'https://erjohnso@github.com': 
+remote: Reusing existing pack: 25, done.[K
+remote: Counting objects: 17, done.[K
+remote: Compressing objects:   6% (1/15)   [Kremote: Compressing objects:  13% (2/15)   [Kremote: Compressing objects:  20% (3/15)   [Kremote: Compressing objects:  26% (4/15)   [Kremote: Compressing objects:  33% (5/15)   [Kremote: Compressing objects:  40% (6/15)   [Kremote: Compressing objects:  46% (7/15)   [Kremote: Compressing objects:  53% (8/15)   [Kremote: Compressing objects:  60% (9/15)   [Kremote: Compressing objects:  66% (10/15)   [Kremote: Compressing objects:  73% (11/15)   [Kremote: Compressing objects:  80% (12/15)   [Kremote: Compressing objects:  86% (13/15)   [Kremote: Compressing objects:  93% (14/15)   [Kremote: Compressing objects: 100% (15/15)   [Kremote: Compressing objects: 100% (15/15), done.[K
+Unpacking objects:   2% (1/42)   Unpacking objects:   4% (2/42)   Unpacking objects:   7% (3/42)   Unpacking objects:   9% (4/42)   Unpacking objects:  11% (5/42)   Unpacking objects:  14% (6/42)   Unpacking objects:  16% (7/42)   Unpacking objects:  19% (8/42)   Unpacking objects:  21% (9/42)   Unpacking objects:  23% (10/42)   Unpacking objects:  26% (11/42)   Unpacking objects:  28% (12/42)   Unpacking objects:  30% (13/42)   Unpacking objects:  33% (14/42)   Unpacking objects:  35% (15/42)   Unpacking objects:  38% (16/42)   Unpacking objects:  40% (17/42)   Unpacking objects:  42% (18/42)   remote: Total 42 (delta 5), reused 0 (delta 0)[K
+Unpacking objects:  45% (19/42)   Unpacking objects:  47% (20/42)   Unpacking objects:  50% (21/42)   Unpacking objects:  52% (22/42)   Unpacking objects:  54% (23/42)   Unpacking objects:  57% (24/42)   Unpacking objects:  59% (25/42)   Unpacking objects:  61% (26/42)   Unpacking objects:  64% (27/42)   Unpacking objects:  66% (28/42)   Unpacking objects:  69% (29/42)   Unpacking objects:  71% (30/42)   Unpacking objects:  73% (31/42)   Unpacking objects:  76% (32/42)   Unpacking objects:  78% (33/42)   Unpacking objects:  80% (34/42)   Unpacking objects:  83% (35/42)   Unpacking objects:  85% (36/42)   Unpacking objects:  88% (37/42)   Unpacking objects:  90% (38/42)   Unpacking objects:  92% (39/42)   Unpacking objects:  95% (40/42)   Unpacking objects:  97% (41/42)   Unpacking objects: 100% (42/42)   Unpacking objects: 100% (42/42), done.
+$ cd compute-video-demo-chef/
+$ ./install.sh 
+~/chef-repo/cookbooks ~/compute-video-demo-chef
+Cloning into 'gce'...
+remote: Counting objects: 156, done.[K
+remote: Compressing objects:   2% (1/47)   [Kremote: Compressing objects:   4% (2/47)   [Kremote: Compressing objects:   6% (3/47)   [Kremote: Compressing objects:   8% (4/47)   [Kremote: Compressing objects:  10% (5/47)   [Kremote: Compressing objects:  12% (6/47)   [Kremote: Compressing objects:  14% (7/47)   [Kremote: Compressing objects:  17% (8/47)   [Kremote: Compressing objects:  19% (9/47)   [Kremote: Compressing objects:  21% (10/47)   [Kremote: Compressing objects:  23% (11/47)   [Kremote: Compressing objects:  25% (12/47)   [Kremote: Compressing objects:  27% (13/47)   [Kremote: Compressing objects:  29% (14/47)   [Kremote: Compressing objects:  31% (15/47)   [Kremote: Compressing objects:  34% (16/47)   [Kremote: Compressing objects:  36% (17/47)   [Kremote: Compressing objects:  38% (18/47)   [Kremote: Compressing objects:  40% (19/47)   [Kremote: Compressing objects:  42% (20/47)   [Kremote: Compressing objects:  44% (21/47)   [Kremote: Compressing objects:  46% (22/47)   [Kremote: Compressing objects:  48% (23/47)   [Kremote: Compressing objects:  51% (24/47)   [Kremote: Compressing objects:  53% (25/47)   [Kremote: Compressing objects:  55% (26/47)   [Kremote: Compressing objects:  57% (27/47)   [Kremote: Compressing objects:  59% (28/47)   [Kremote: Compressing objects:  61% (29/47)   [Kremote: Compressing objects:  63% (30/47)   [Kremote: Compressing objects:  65% (31/47)   [Kremote: Compressing objects:  68% (32/47)   [Kremote: Compressing objects:  70% (33/47)   [Kremote: Compressing objects:  72% (34/47)   [Kremote: Compressing objects:  74% (35/47)   [Kremote: Compressing objects:  76% (36/47)   [Kremote: Compressing objects:  78% (37/47)   [Kremote: Compressing objects:  80% (38/47)   [Kremote: Compressing objects:  82% (39/47)   [Kremote: Compressing objects:  85% (40/47)   [Kremote: Compressing objects:  87% (41/47)   [Kremote: Compressing objects:  89% (42/47)   [Kremote: Compressing objects:  91% (43/47)   [Kremote: Compressing objects:  93% (44/47)   [Kremote: Compressing objects:  95% (45/47)   [Kremote: Compressing objects:  97% (46/47)   [Kremote: Compressing objects: 100% (47/47)   [Kremote: Compressing objects: 100% (47/47), done.[K
+Receiving objects:   0% (1/156)   Receiving objects:   1% (2/156)   Receiving objects:   2% (4/156)   Receiving objects:   3% (5/156)   Receiving objects:   4% (7/156)   Receiving objects:   5% (8/156)   Receiving objects:   6% (10/156)   Receiving objects:   7% (11/156)   Receiving objects:   8% (13/156)   Receiving objects:   9% (15/156)   Receiving objects:  10% (16/156)   Receiving objects:  11% (18/156)   Receiving objects:  12% (19/156)   Receiving objects:  13% (21/156)   Receiving objects:  14% (22/156)   Receiving objects:  15% (24/156)   Receiving objects:  16% (25/156)   Receiving objects:  17% (27/156)   Receiving objects:  18% (29/156)   Receiving objects:  19% (30/156)   Receiving objects:  20% (32/156)   Receiving objects:  21% (33/156)   Receiving objects:  22% (35/156)   Receiving objects:  23% (36/156)   Receiving objects:  24% (38/156)   Receiving objects:  25% (39/156)   Receiving objects:  26% (41/156)   Receiving objects:  27% (43/156)   Receiving objects:  28% (44/156)   Receiving objects:  29% (46/156)   Receiving objects:  30% (47/156)   Receiving objects:  31% (49/156)   Receiving objects:  32% (50/156)   Receiving objects:  33% (52/156)   Receiving objects:  34% (54/156)   Receiving objects:  35% (55/156)   Receiving objects:  36% (57/156)   Receiving objects:  37% (58/156)   Receiving objects:  38% (60/156)   Receiving objects:  39% (61/156)   Receiving objects:  40% (63/156)   Receiving objects:  41% (64/156)   Receiving objects:  42% (66/156)   Receiving objects:  43% (68/156)   Receiving objects:  44% (69/156)   Receiving objects:  45% (71/156)   Receiving objects:  46% (72/156)   Receiving objects:  47% (74/156)   Receiving objects:  48% (75/156)   Receiving objects:  49% (77/156)   Receiving objects:  50% (78/156)   Receiving objects:  51% (80/156)   Receiving objects:  52% (82/156)   Receiving objects:  53% (83/156)   Receiving objects:  54% (85/156)   Receiving objects:  55% (86/156)   Receiving objects:  56% (88/156)   Receiving objects:  57% (89/156)   Receiving objects:  58% (91/156)   Receiving objects:  59% (93/156)   Receiving objects:  60% (94/156)   Receiving objects:  61% (96/156)   Receiving objects:  62% (97/156)   remote: Total 156 (delta 106), reused 148 (delta 101)[K
+Receiving objects:  63% (99/156)   Receiving objects:  64% (100/156)   Receiving objects:  65% (102/156)   Receiving objects:  66% (103/156)   Receiving objects:  67% (105/156)   Receiving objects:  68% (107/156)   Receiving objects:  69% (108/156)   Receiving objects:  70% (110/156)   Receiving objects:  71% (111/156)   Receiving objects:  72% (113/156)   Receiving objects:  73% (114/156)   Receiving objects:  74% (116/156)   Receiving objects:  75% (117/156)   Receiving objects:  76% (119/156)   Receiving objects:  77% (121/156)   Receiving objects:  78% (122/156)   Receiving objects:  79% (124/156)   Receiving objects:  80% (125/156)   Receiving objects:  81% (127/156)   Receiving objects:  82% (128/156)   Receiving objects:  83% (130/156)   Receiving objects:  84% (132/156)   Receiving objects:  85% (133/156)   Receiving objects:  86% (135/156)   Receiving objects:  87% (136/156)   Receiving objects:  88% (138/156)   Receiving objects:  89% (139/156)   Receiving objects:  90% (141/156)   Receiving objects:  91% (142/156)   Receiving objects:  92% (144/156)   Receiving objects:  93% (146/156)   Receiving objects:  94% (147/156)   Receiving objects:  95% (149/156)   Receiving objects:  96% (150/156)   Receiving objects:  97% (152/156)   Receiving objects:  98% (153/156)   Receiving objects:  99% (155/156)   Receiving objects: 100% (156/156)   Receiving objects: 100% (156/156), 33.45 KiB, done.
+Resolving deltas:   0% (0/106)   Resolving deltas:  19% (21/106)   Resolving deltas:  33% (35/106)   Resolving deltas:  39% (42/106)   Resolving deltas:  40% (43/106)   Resolving deltas:  41% (44/106)   Resolving deltas:  43% (46/106)   Resolving deltas:  79% (84/106)   Resolving deltas:  81% (86/106)   Resolving deltas:  86% (92/106)   Resolving deltas:  97% (103/106)   Resolving deltas: 100% (106/106)   Resolving deltas: 100% (106/106), done.
+~/compute-video-demo-chef
+Enter your Service Account Client Email: 982735739546-c1gpjgnpih237338tn1top6768fp7st2@developer.gserviceaccount.com
+Enter your Project ID: graphite-demos
+Enter the full path to your Service Account private key: /home/erjohnso/.che    chef-repo/.chef/private-key.p12
+Writing your auth/demo settings to '/home/erjohnso/chef-repo/cookbooks/gce/recipes/gce_auth.rb'
+$ 
+$ # Now let's make sure we have cookbook dependencies installed
+$ cd !/c   ~/chef-repo
+$ knife cookbook site install apt
+Installing apt to /home/erjohnso/chef-repo/cookbooks
+Checking out the master branch.
+Pristine copy branch (chef-vendor-apt) exists, switching to it.
+Downloading apt from the cookbooks site at version 2.4.0 to /home/erjohnso/chef-repo/cookbooks/apt.tar.gz
+Cookbook saved: /home/erjohnso/chef-repo/cookbooks/apt.tar.gz
+Removing pre-existing version.
+Uncompressing apt version 2.4.0.
+removing downloaded tarball
+No changes made to apt
+Checking out the master branch.
+$ knife cookbok ok site install apache2
+Installing apache2 to /home/erjohnso/chef-repo/cookbooks
+Checking out the master branch.
+Pristine copy branch (chef-vendor-apache2) exists, switching to it.
+Downloading apache2 from the cookbooks site at version 1.10.4 to /home/erjohnso/chef-repo/cookbooks/apache2.tar.gz
+Cookbook saved: /home/erjohnso/chef-repo/cookbooks/apache2.tar.gz
+Removing pre-existing version.
+Uncompressing apache2 version 1.10.4.
+removing downloaded tarball
+No changes made to apache2
+Checking out the master branch.
+Installing iptables to /home/erjohnso/chef-repo/cookbooks
+Checking out the master branch.
+Pristine copy branch (chef-vendor-iptables) exists, switching to it.
+Downloading iptables from the cookbooks site at version 0.13.2 to /home/erjohnso/chef-repo/cookbooks/iptables.tar.gz
+Cookbook saved: /home/erjohnso/chef-repo/cookbooks/iptables.tar.gz
+Removing pre-existing version.
+Uncompressing iptables version 0.13.2.
+removing downloaded tarball
+No changes made to iptables
+Checking out the master branch.
+Installing logrotate to /home/erjohnso/chef-repo/cookbooks
+Checking out the master branch.
+Pristine copy branch (chef-vendor-logrotate) exists, switching to it.
+Downloading logrotate from the cookbooks site at version 1.6.0 to /home/erjohnso/chef-repo/cookbooks/logrotate.tar.gz
+Cookbook saved: /home/erjohnso/chef-repo/cookbooks/logrotate.tar.gz
+Removing pre-existing version.
+Uncompressing logrotate version 1.6.0.
+removing downloaded tarball
+No changes made to logrotate
+Checking out the master branch.
+Installing pacman to /home/erjohnso/chef-repo/cookbooks
+Checking out the master branch.
+Pristine copy branch (chef-vendor-pacman) exists, switching to it.
+Downloading pacman from the cookbooks site at version 1.1.1 to /home/erjohnso/chef-repo/cookbooks/pacman.tar.gz
+Cookbook saved: /home/erjohnso/chef-repo/cookbooks/pacman.tar.gz
+Removing pre-existing version.
+Uncompressing pacman version 1.1.1.
+removing downloaded tarball
+No changes made to pacman
+Checking out the master branch.
+$ # L'et   et's upload the demo cookbook the installs cript        scrip t  t created
+$ knife cookbook upload chefconf2014 --include-dependencies
+Uploading chefconf2014 [0.1.0]
+Uploading apache2      [1.10.4]
+Uploading iptables     [0.13.2]
+Uploading logrotate    [1.6.0]
+Uploading pacman       [1.1.1]
+Uploaded 5 cookbooks.
+$ # # n Now use Chef Zero to run the gce-demo recipe
+$ chef-client -z -o 'gce::gce-demo'
+[2014-06-16T19:33:33+00:00] INFO: Starting chef-zero on port 8889 with repository at repository at /home/erjohnso/chef-repo
+  One version per cookbook
+
+[2014-06-16T19:33:33+00:00] INFO: Forking chef instance to converge...
+[2014-06-16T19:33:33+00:00] WARN: 
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+SSL validation of HTTPS requests is disabled. HTTPS connections are still
+encrypted, but chef is not able to detect forged replies or man in the middle
+attacks.
+
+To fix this issue add an entry like this to your configuration file:
+
+```
+  # Verify all HTTPS connections (recommended)
+  ssl_verify_mode :verify_peer
+
+  # OR, Verify only connections to chef-server
+  verify_api_cert true
+```
+
+To check your SSL configuration, or troubleshoot errors, you can use the
+`knife ssl check` command like so:
+
+```
+  knife ssl check -c /home/erjohnso/chef-repo/.chef/knife.rb
+```
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+Starting Chef Client, version 11.12.8[0m
+[2014-06-16T19:33:33+00:00] INFO: *** Chef 11.12.8 ***
+[2014-06-16T19:33:33+00:00] INFO: Chef-client pid: 29511
+[2014-06-16T19:33:35+00:00] WARN: [inet] no ipaddress/mask on eth0 matching the gateway 10.240.0.1, picking one anyway
+[2014-06-16T19:33:35+00:00] WARN: Run List override has been provided.
+[2014-06-16T19:33:35+00:00] WARN: Original Run List: []
+[2014-06-16T19:33:35+00:00] WARN: Overridden Run List: [recipe[gce::gce-demo]]
+[2014-06-16T19:33:35+00:00] INFO: Run List is [recipe[gce::gce-demo]]
+[2014-06-16T19:33:35+00:00] INFO: Run List expands to [gce::gce-demo]
+[2014-06-16T19:33:35+00:00] INFO: Starting Chef Run for erjohnso
+[2014-06-16T19:33:35+00:00] INFO: Running start handlers
+[2014-06-16T19:33:35+00:00] INFO: Start handlers complete.
+[2014-06-16T19:33:35+00:00] INFO: HTTP Request Returned 404 Not Found : Object not found: /reports/nodes/erjohnso/runs
+resolving cookbooks for run list: ["gce::gce-demo"][0m
+[2014-06-16T19:33:35+00:00] INFO: Loading cookbooks [gce@0.2.0]
+Synchronizing Cookbooks:[0m
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/tags.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/lb_targetpool.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/network.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/instance.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/lb_healthcheck.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/metadata.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/lb_forwardingrule.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/disk.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/snapshot.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/resources/firewall.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/tags.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/lb_targetpool.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/network.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/instance.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/lb_healthcheck.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/metadata.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/lb_forwardingrule.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/disk.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/snapshot.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/providers/firewall.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/recipes/clean-up-demo.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/recipes/gce-demo.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/recipes/gce_auth.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/recipes/default.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/libraries/gce.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/attributes/default.rb in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/README.md in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/CHANGELOG.md in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/.gitignore in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/LICENSE in the cache.
+[2014-06-16T19:33:36+00:00] INFO: Storing updated cookbooks/gce/metadata.rb in the cache.
+  - gce[0m
+Compiling Cookbooks...[0m
+Converging 8 resources[0m
+Recipe: gce::gce-demo[0m
+  * gce_instance[chef-demo-1] action create[0m[2014-06-16T19:33:36+00:00] INFO: Processing gce_instance[chef-demo-1] action create (gce::gce-demo line 16)
+[2014-06-16T19:33:42+00:00] INFO: Using boot_disk chef-demo-1
+[2014-06-16T19:33:47+00:00] INFO: Created instance chef-demo-1 in zone us-central1-b
+ (up to date)[0m
+  * gce_instance[chef-demo-2] action create[0m[2014-06-16T19:33:47+00:00] INFO: Processing gce_instance[chef-demo-2] action create (gce::gce-demo line 16)
+[2014-06-16T19:33:50+00:00] INFO: Using boot_disk chef-demo-2
+[2014-06-16T19:33:55+00:00] INFO: Created instance chef-demo-2 in zone us-central1-a
+ (up to date)[0m
+  * gce_instance[chef-demo-3] action create[0m[2014-06-16T19:33:55+00:00] INFO: Processing gce_instance[chef-demo-3] action create (gce::gce-demo line 16)
+[2014-06-16T19:33:58+00:00] INFO: Using boot_disk chef-demo-3
+[2014-06-16T19:34:03+00:00] INFO: Created instance chef-demo-3 in zone us-central1-b
+ (up to date)[0m
+  * gce_instance[chef-demo-4] action create[0m[2014-06-16T19:34:03+00:00] INFO: Processing gce_instance[chef-demo-4] action create (gce::gce-demo line 16)
+[2014-06-16T19:34:05+00:00] INFO: Using boot_disk chef-demo-4
+[2014-06-16T19:34:11+00:00] INFO: Created instance chef-demo-4 in zone us-central1-a
+ (up to date)[0m
+  * gce_firewall[chef-demo-allow-http] action create[0m[2014-06-16T19:34:11+00:00] INFO: Processing gce_firewall[chef-demo-allow-http] action create (gce::gce-demo line 44)
+[2014-06-16T19:34:13+00:00] INFO: Completed firewall chef-demo-allow-http insert
+ (up to date)[0m
+  * gce_lb_healthcheck[chef-demo-hc] action create[0m[2014-06-16T19:34:13+00:00] INFO: Processing gce_lb_healthcheck[chef-demo-hc] action create (gce::gce-demo line 54)
+[2014-06-16T19:34:14+00:00] INFO: Created HTTP health check chef-demo-hc
+ (up to date)[0m
+  * gce_lb_targetpool[chef-demo-tp] action create[0m[2014-06-16T19:34:14+00:00] INFO: Processing gce_lb_targetpool[chef-demo-tp] action create (gce::gce-demo line 64)
+[2014-06-16T19:34:17+00:00] INFO: Created target pool chef-demo-tp
+ (up to date)[0m
+  * gce_lb_forwardingrule[chef-demo-fr] action create[0m[2014-06-16T19:34:17+00:00] INFO: Processing gce_lb_forwardingrule[chef-demo-fr] action create (gce::gce-demo line 75)
+[2014-06-16T19:34:19+00:00] INFO: Created forwarding rule chef-demo-fr
+ (up to date)[0m
+[2014-06-16T19:34:19+00:00] WARN: Skipping final node save because override_runlist was given
+[2014-06-16T19:34:19+00:00] INFO: Chef Run complete in 44.074903101 seconds
+
+Running handlers:[0m
+[2014-06-16T19:34:19+00:00] INFO: Running report handlers
+Running handlers complete
+[0m
+[2014-06-16T19:34:19+00:00] INFO: Report handlers complete
+Chef Client finished, 0/8 resources updated in 46.237644964 seconds[0m
+$ 
+$ # The new instances will take a few more im   m  minutes for the operating system
+$ # to finsh booting          ish booting.  Each instance will aso  lso execute a custom startup-script
+$ # that will install a few authorization files we declared in our recipe.
+$ # Thse  ese files will allow the new instances to register with the Chef Server
+$ # Also, the startup-script will call the "chef-client" localll  ly to apply the
+$ # initial run_list.  The run_list is a recipe that will install Apache and
+$ # create the custom site page.
+$ 
+$ # We can verify that the instances are created by using the Cloud SDK
+$ gcloud compute instances list -l "chef-demo.*"
+name        status  zone          machineType   internalIP    externalIP
+chef-demo-1 RUNNING us-central1-b n1-standard-1 10.240.231.64 146.148.54.219
+chef-demo-3 RUNNING us-central1-b n1-standard-1 10.240.5.23   146.148.56.215
+chef-demo-2 RUNNING us-central1-a n1-standard-1 10.240.69.72  146.148.54.11
+chef-demo-4 RUNNING us-central1-a n1-standard-1 10.240.95.100 146.148.51.152
+$ 
+$ # N Now, e let's see if the instances have checki ed in with the Chef Server,
+$ knife node list
+chef-demo-1
+chef-demo-2
+chef-demo-3
+chef-demo-4
+$ 
+$ # The next step is to use the load-balancer IP to see if each is able to
+$ # respond
+$ ip=$(gcloud compute forwarding-rules get chef-demo-fr | grep IPAddress | awk ' {print $2}')
+$ echo $ip
+146.148.56.235
+$ while [ 1 ]; do curl -sL http://$ip/ | grep \<title; sleep .5; done
+  <title>chef-demo-2</title>
+  <title>chef-demo-3</title>
+  <title>chef-demo-2</title>
+  <title>chef-demo-3</title>
+  <title>chef-demo-4</title>
+  <title>chef-demo-4</title>
+  <title>chef-demo-3</title>
+  <title>chef-demo-1</title>
+  <title>chef-demo-3</title>
+  <title>chef-demo-2</title>
+  <title>chef-demo-3</title>
+  <title>chef-demo-4</title>
+  <title>chef-demo-1</title>
+  <title>chef-demo-4</title>
+  <title>chef-demo-2</title>
+^C
+$ 
+$ # Success!!
+$ exit
+exit
+
+Script done on Mon Jun 16 19:38:11 2014
