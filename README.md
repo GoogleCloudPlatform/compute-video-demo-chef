@@ -366,7 +366,6 @@ Have a patch that will benefit this project? Awesome! Follow these steps to have
 
 1. Please sign our [Contributor License Agreement](CONTRIB.md).
 1. Fork this Git repository and make your changes.
-1. Run the unit tests. (gcimagebundle only)
 1. Create a Pull Request
 1. Incorporate review feedback to your changes.
 1. Accepted!
