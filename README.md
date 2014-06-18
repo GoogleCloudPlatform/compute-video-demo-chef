@@ -5,29 +5,32 @@ Compute Engine**, one of the topics covered in the
 *video-shorts series*, [TODO: insert youtube video link]
 
 The goal of this repository is to provide the extra detail necessary for
-you to completely replicate the recorded demo. The video's main goal
-is to show a quick, fully working demo without bogging you down with all
-of the required details so you can easily see the "Good Stuff".
+you to completely replicate the recorded demos. The video's main goal
+is to show quick, fully working demos without bogging you down with all
+of the required details allowing you to see the "Good Stuff".
 
-At the end of the demo, you will have used Chef to automate:
-* Creating 4 Compute Engine instances
-* Installing the Apache web server on each and enabling `mod_headers`
-* Using Ohai and a template to create a custom site page
-* Allowing HTTP traffic to the instances with a custom firewall rule
-* Creating a Compute Engine Load-balancer to distribute traffic over the 4 instances
+1. The first demo will show you how you can use knife-google to create a
+Compute Engine instance and bootstrap it.
 
-This is intended to be a fairly trival example. The video and repo show off
+2. The second demo will show how to use the Google Compute Engine LWRP to automate:
+ * Creating 4 Compute Engine instances
+ * Installing the Apache web server on each and enabling `mod_headers`
+ * Using Ohai and a template to create a custom site page
+ * Allowing HTTP traffic to the instances with a custom firewall rule
+ * Creating a Compute Engine Load-balancer to distribute traffic over the 4 instances
+
+These are intended to be a fairly trival examples. The video and repo show off
 the integration between Chef and Google Compute Engine. This can be the
 foundation for building more real-world configurations.
 
 ### Overview
 
-To fully replicate this demo, you will be setting up the Open Source Chef
+To fully replicate these demos, you will be setting up the Open Source Chef
 Server and a Chef Workstation in your Compute Engine project. Both the
 Chef Server and Chef Client can be downloaded from the
 [Chef Install page](http://www.getchef.com/chef/install/).
 
-The demo will be performed by applying a Chef recipe utilizing
+The LWRP demo will be performed by applying a Chef recipe utilizing
 [Chef Zero](http://www.getchef.com/blog/2013/10/31/chef-client-z-from-zero-to-chef-in-8-5-seconds/)
 from your Chef Workstation. The four Compute Engine instances will be
 bootstrapped into your Chef Server's environment, so even though the demo
@@ -53,7 +56,7 @@ from your recipe, the new instances will not identify themselves with a
 Chef server.
 
 This demo will assume that you *are* using a Chef Server. Therefore, the
-special instance attributes will be set.
+special instance attributes in the demo recipe will be set.
 
 ## Google Cloud Platform Project
 
@@ -88,7 +91,8 @@ as instructed.
 1. Before continuing, make sure to record the following information that will
 be required when configuring the demo:
  * Your Google Cloud Platform *Project ID*
- * The Service Account *Client ID* email address (ends with `@developer.gserviceaccount.com`)
+ * The Service Account *Client ID* email address (ends with
+   `@developer.gserviceaccount.com`)
  * The full pathname to the corresponding private key file
 
 ## Required Compute Engine instances
@@ -155,13 +159,16 @@ in your terminal for download. For example,
 
 1. As instructed on Chef's
 [documentation](http://docs.opscode.com/chef/manage_server_open_source.html#log-in)
-the first thing you should do is to change the default `admin` password. Point
+the first thing you should do is to change the default `admin` console
+password. In order to access the web console, you will need to create a
+firewall rule to allow HTTPS (port 443) traffic.  Once that is done, point
 your browser to your Chef Server's public IP (e.g. https://public-ip:443/)
 and log in with user `admin` and password `p@ssw0rd1`. Once logged in,
 immediately change the `admin` user's password. You can find your Chef
 Server's public IP in the Developers Console, or with,
    ```
    exit # to quit the 'root' user session
+   gcloud compute firewalls create allow-https --allow=tcp:443
    gcloud compute instances get $(hostname -s) | grep natIP | awk '{print $2}'
    ```
 
@@ -257,6 +264,66 @@ you some information about one of the configured clients on the server,
     validator:  false
     ```
 
+## Knife Demo
+
+A common way to manage nodes with Chef is to use the `knife` utility.
+With the [`knife-google`](http://docs.opscode.com/plugin_knife_google.html)
+plugin, you can provision and bootstrap new Compute Engine instances.
+
+This screencast, http://asciinema.org/a/10292, assumes you already have a
+working Chef Server, Chef Workstation, and configured knife utility.
+
+### Install and Setup
+
+1. When you first created the Chef Workstation, you set the OAuth scopes to
+allow the workstation to create other Compute Engine instances. In order
+to ensure Workstation user account can access new instances, you'll want to
+make sure to have created SSH keys and added them to your project metadata.
+If you use the `gcloud compute` command to SSH back into itself, it will
+prompt you to create a Compute Engine SSH keypair and upload it to the
+metadata service. After logging in, log back out and continue to the next
+step.
+    ```
+    gcloud compute ssh $(hostname -s)
+    ```
+
+1. Install the knife-google plugin on your Chef Workstation with,
+    ```
+    sudo /opt/chef/embedded/bin/gem install knife-google
+    ```
+
+1. You will need to create a Google Cloud Platform *Client ID for native
+application* and use the *Client ID* (string ending with
+`apps.googleusercontent.com`) and *Client secret*. Set up the knife-google
+authorization with,
+    ```
+    knife google setup
+    ```
+
+### Demo
+
+1. Once setup, you can then use knife-google to create and bootstrap a new
+node with,
+    ```
+    knife google server create knife-test -m n1-standard-1 -I debian-7-wheezy-v2014060 -Z us-central1-b -i ~/.ssh/google_compute_engine -x $USER
+    ```
+
+1. Once the instance is created and the node registered with the Chef Server,
+you can use standard knife commands to query the Chef Server for more details,
+    ```
+    knife node list                    # should show 'knife-test' listed
+    knife node show knife-test -a gce  # Ohai hints for Compute Engine
+    ```
+
+1. The server can be deleted with knife also (the `-P` will also remove
+the node reference from your Chef Server).  Note that the instances disk
+will *not* be deleted.  You can use the `knife google disk` operations to
+manage disks.
+    ```
+    knife google server delete knife-testing -Z us-central1-b -P
+    # knife google disk delete knife-testing -Z us-central1-b
+    ```
+
 ## Cookbook and Demo setup
 
 The next two sections were recorded in a terminal screencast availble for
@@ -329,19 +396,15 @@ Developers Console, or with,
 
 ## All done!
 
-That's it for the demo. You just used the Google Compute Engine LWRP to create
-a complete environment consisting of virtual machines (managed by Chef),
-persistent disks, firewall rule, and load-balancer.
-
-You can of course also use the [knife-google](http://docs.opscode.com/plugin_knife_google.html)
-to create Compute Engine instances from your Chef Workstation and bootstrap
-them as part of your Chef environment. But the knife plugin does not support
-features to manage other Compute Engine resources such as load-balancers.
+That's it for the demos. You just used both the `knife-google` plugin and the
+Google Compute Engine LWRP to create a complete environment consisting of
+virtual machines (managed by Chef), persistent disks, firewall rule, and a
+load-balancer.
 
 ## Cleaning up
 
-When you're done with the demo, make sure to tear down all of your
-instances and clean-up. You will get charged for this usage and you will
+When you're done with the demo, make sure to tear down all of your instances,
+disks, and other resources. You will be charged for this usage and you will
 accumulate additional charges if you do not remove these resources.
 
 Fortunately, there is an included recipe for deleting all of the Compute

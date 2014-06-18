@@ -1,0 +1,78 @@
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## =========================================================================
+# This screencast demonstrates how you can use Chef and Google Compute Engine.
+# Everything you need to repeat this demo on your own can be found at,
+# https://github.com/GoogleCloudPlatform/compute-video-demo-chef
+#
+# We'll use the Google Compute Engine LWRP to create 4 virtual machines,
+# a load-balancer, and open up a firewall rule for HTTP traffic.  The new
+# virtual machines will be bootstrapped into our Chef environment and we'll
+# also install Apache on each one along with a custom web page.
+# 
+# We assume you have already set up your Google Cloud Platform project,
+# installed the Open Source Chef Server, created and configured a Chef
+# Workstation, and have configured the knife utility.
+#
+# This screencast picks up at the "Cookbook and Demo setup" section of the
+# README.  As such, we are now logged into our configured Chef Workstation
+# and are ready to proceed.
+#
+# Let's just check to make sure we're starting with a clean slate,
+knife cookbook list
+knife client list
+
+# Ok, let's get started!  First, let's install a few gems
+sudo /opt/chef/embedded/bin/gem install google-api-client --no-rdoc --no-ri
+sudo /opt/chef/embedded/bin/gem install fog --no-rdoc --no-ri
+
+# Now, let's check out the demo repo and run it's install script. We'll
+# need our Google Cloud Platform Project ID, a Service Account Client Email
+# address, and the location of it's corresponding private key.
+cd
+git clone https://github.com/GoogleCloudPlatform/compute-video-demo-chef
+cd compute-video-demo-chef
+./install.sh
+
+# Now let's make sure we have cookbook demo dependencies installed
+cd ~/chef-repo
+knife cookbook site install apt
+knife cookbook site install apache2
+knife cookbook upload chefconf2014 --include-dependencies
+
+# Now, let's use Chef Zero to run the 'gce-demo' recipe to create everything
+chef-client -z -o 'gce::gce-demo'
+
+# The new instances will take a few more minutes for the operating system
+# to finish booting.  Each instance will also execute a custom startup-script
+# that will install a few authorization files we declared in our recipe.
+# These files will allow the new instances to register with the Chef Server
+# Also, the startup-script will call "chef-client" locally to apply the
+# initial run_list.  The run_list is a recipe that will install Apache and
+# create the custom site page.
+
+# We can verify that the instances are created by using the Cloud SDK
+gcloud compute instances list -l "chef-demo.*"
+
+# Now, let's see if the instances have checked in with the Chef Server,
+knife node list
+
+# The next step is to use the load-balancer IP to see if each instance is
+# able to respond
+ip=$(gcloud compute forwarding-rules get chef-demo-fr | grep IPAddress | awk '{print $2}')
+while [ 1 ]; do curl -sL http://$ip/ | grep \<title; sleep .5; done
+
+# Success!
+exit

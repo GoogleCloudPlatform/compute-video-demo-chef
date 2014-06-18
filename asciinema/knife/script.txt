@@ -1,0 +1,67 @@
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## =========================================================================
+# This screencast demonstrates how you can use Chef and the knife-google
+# plugin for Google Compute Engine.  Everything you need to repeat this demo
+# on your own can be found at,
+# https://github.com/GoogleCloudPlatform/compute-video-demo-chef
+#
+# We assume you have already set up your Google Cloud Platform project,
+# installed the Open Source Chef Server, created and configured a Chef
+# Workstation, and have configured the knife utility.
+#
+# Let's just check to make sure we're starting with a clean slate,
+cd ~/chef-repo
+knife node list
+
+# Ok, let's get started!  First, we want to make sure our Chef Workstation
+# running on a Compute Engine instance has a valid Compute Engine SSH key
+# and it is registered with the metadata server. This will give us sudo
+# access on new instances.  We can use `gcloud compute`,
+gcloud compute ssh $(hostname -s)
+
+# It's OK that this failed on a zone lookup. The SSH key was still created
+# and uploaded to the metadata server.
+
+# Let's install the knife-google utility,
+sudo /opt/chef/embedded/bin/gem install knife-google --no-rdoc --no-ri
+
+# Now we need to set up the authorization. You will need to have created a
+# new Client ID (for native application) so that you can provide the
+# *Client ID* and *Client secret*. Once you supply the necessary bits, you
+# will need to copy/paste the URL into an authenticated browser session
+# to obtain the auth token that you need to copy/paste back into the the
+# terminal,
+knife google setup
+
+# We can verify that authorization was set up correctly with,
+knife google zone list
+
+# Ok, let's create a new instance and watch it get bootstrapped
+knife google server create knife-test \
+  -m n1-standard-1 \
+  -I debian-7-wheezy-v2014060 \
+  -Z us-central1-b \
+  -i ~/.ssh/google_compute_engine \
+  -x $USER
+
+# Does the Chef Server know about it?
+knife node list
+
+# Ohai has hints for Compute Engine built in too!
+knife node show knife-test -a gce | less
+
+# Success!
+exit
