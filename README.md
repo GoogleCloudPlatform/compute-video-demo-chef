@@ -327,7 +327,7 @@ manage disks.
 ## Cookbook and Demo setup
 
 The next two sections were recorded in a terminal screencast availble for
-viewing at https://asciinema.org/a/10203.
+viewing at https://asciinema.org/a/10332.
 
 1. Log into the Chef Workstation and install the ruby gem dependencies
 required to use the
