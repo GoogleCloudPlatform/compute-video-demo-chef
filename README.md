@@ -1,18 +1,20 @@
 ## compute-video-demo-chef
 
-This is the supporting documentation for **Using Chef with Google
-Compute Engine**, one of the topics covered in the
-*video-shorts series*, [TODO: insert youtube video link]
+This is the supporting documentation for the demo video,
+<a href='https://www.youtube.com/watch?v=6K2biJbVV8o'>Using Chef with Google</a>.
 
 The goal of this repository is to provide the extra detail necessary for
 you to completely replicate the recorded demos. The video's main goal
 is to show quick, fully working demos without bogging you down with all
 of the required details allowing you to see the "Good Stuff".
 
-1. The first demo will show you how you can use knife-google to create a
-Compute Engine instance and bootstrap it.
+1. The first demo will show you how you can use
+<a href='https://docs.chef.io/plugin_knife_google.html'>knife-google</a>
+to create a Compute Engine instance and bootstrap it.
 
-2. The second demo will show how to use the Google Compute Engine LWRP to automate:
+2. The second demo will show how to use the
+<a href='https://github.com/chef-partners/google-compute-engine'>Google Compute Engine LWRP</a>
+to automate:
  * Creating 4 Compute Engine instances
  * Installing the Apache web server on each and enabling `mod_headers`
  * Using Ohai and a template to create a custom site page
@@ -75,12 +77,12 @@ before you can create any virtual machines with Compute Engine. Look for the
 
 1. In order for duplicate this demo, you'll need a
 [Service Account](https://developers.google.com/console/help/#service_accounts)
-created for the appropriate authorization. Navigate to
+for the appropriate authorization. You may use the existing default Service
+Account, or you can create a new one.  If you create a new one, navigate to
 *APIs &amp; auth -&gt; Credentials* and under the OAuth section,
-*Create New Client ID*. Make sure to select *Service Account*. Google will
-generate a new private key and prompt you to save the file and let you know
-that it was created with the *notasecret* passphrase. Once you save the key
-file, make sure to record the *Email address* that ends with
+*Create New Client ID*. Make sure to select *Service Account*. Download the
+*P12 key* and save the file. The passphrase for the P12 key is *notasecret*.
+Also make sure to record the *Email address* that ends with
 `@developer.gserviceaccount.com` since this will be required in your Chef
 recipes.
 
@@ -93,7 +95,7 @@ be required when configuring the demo:
  * Your Google Cloud Platform *Project ID*
  * The Service Account *Client ID* email address (ends with
    `@developer.gserviceaccount.com`)
- * The full pathname to the corresponding private key file
+ * The full pathname to the corresponding private P12 key file
 
 ## Required Compute Engine instances
 
@@ -105,10 +107,10 @@ information about the specified operating system image to use and other
 instance parameters.
 
 * Developers Console: If you use this method, select the left-hand
-  navigation menu item for *Compute Engine*. In the sub-menu, click on the
-  *VM Instances* option and look for a red button labeled *NEW INSTANCE*. The
-  resulting page will provide all necessary options for creating a new
-  Compute Engine instance.
+  navigation menu item for *Compute* and sub-menu *Compute Engine*. In the
+  sub-menu, click on the *VM Instances* option and look for a button labeled
+  *New instnace*. The resulting page will provide all necessary options for
+  creating a new Compute Engine instance.
 
 * `gcloud compute`: With this method, you must make sure to specify the
    appropriate instance parameters to the command. The demo assumes you will
@@ -125,7 +127,7 @@ access to Compute Engine.
 1. Create the Compute Engine instance
     ```
     # Make sure to use the CentOS 6 image for this demo
-    gcloud compute instances create chef-server --image centos-cloud/global/images/centos-6-v20140606 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
+    gcloud compute instances create chef-server --image centos-6 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
     ```
 
 1. SSH to your chef server and then become root
@@ -305,7 +307,7 @@ authorization with,
 1. Once setup, you can then use knife-google to create and bootstrap a new
 node with,
     ```
-    knife google server create knife-test -m n1-standard-1 -I debian-7-wheezy-v2014060 -Z us-central1-b -i ~/.ssh/google_compute_engine -x $USER
+    knife google server create knife-test -m n1-standard-1 -I debian-7-wheezy-v20150423-Z us-central1-b -i ~/.ssh/google_compute_engine -x $USER
     ```
 
 1. Once the instance is created and the node registered with the Chef Server,
