@@ -127,7 +127,7 @@ access to Compute Engine.
 1. Create the Compute Engine instance
     ```
     # Make sure to use the CentOS 6 image for this demo
-    gcloud compute instances create chef-server --image centos-6 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
+    gcloud compute instances create chef-server --image centos-6 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw,storage-full
     ```
 
 1. SSH to your chef server and then become root
@@ -141,17 +141,17 @@ access to Compute Engine.
     yum update
     ```
 
-1. [Download](http://www.getchef.com/chef/install/) the Chef Server. Select
+1. [Download](https://downloads.chef.io/chef-server) the Chef Server. Select
 *Enterprise Linux, Version 6, x86_64* and the latest version. The page
 should provide a link to the RPM package that you can use to copy/paste
 in your terminal for download. For example,
     ```
-    wget https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chef-server-11.1.1-1.el6.x86_64.rpm
+    wget https://web-dl.packagecloud.io/chef/stable/packages/el/6/chef-server-11.1.7-1.el6.x86_64.rpm
     ```
 
 1. Install the package
     ```
-    rpm -i chef-server-11.1.1-1.el6.x86_64.rpm
+    rpm -i chef-server-11.1.7-1.el6.x86_64.rpm
     ```
 
 1. Reconfigure the Chef Server as indicated on the download page
@@ -160,8 +160,8 @@ in your terminal for download. For example,
     ```
 
 1. As instructed on Chef's
-[documentation](http://docs.opscode.com/chef/manage_server_open_source.html#log-in)
-the first thing you should do is to change the default `admin` console
+[documentation](http://docs.chef.io/open_source/)
+the first thing you should do is login and change the default `admin` console
 password. In order to access the web console, you will need to create a
 firewall rule to allow HTTPS (port 443) traffic.  Once that is done, point
 your browser to your Chef Server's public IP (e.g. https://public-ip:443/)
@@ -170,7 +170,7 @@ immediately change the `admin` user's password. You can find your Chef
 Server's public IP in the Developers Console, or with,
    ```
    exit # to quit the 'root' user session
-   gcloud compute firewalls create allow-https --allow=tcp:443
+   gcloud compute firewall-rules create allow-https --allow=tcp:443
    gcloud compute instances get $(hostname -s) | grep natIP | awk '{print $2}'
    ```
 
@@ -183,7 +183,7 @@ will use to develop cookbooks and manage your Chef environment.
 1. Create the Compute Engine instance, this time specify a Debian 7 instance,
     ```
     # Make sure to use the Debian 7 image for this demo
-    gcloud compute instances create chef-workstation --image debian-cloud/global/images/debian-7-v20140606 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw storage-full
+    gcloud compute instances create chef-workstation --image debian-7 --zone us-central1-b --machine-type n1-standard-1 --scopes compute-rw,storage-full
     ```
 
 1. SSH to your Chef Workstation
@@ -197,13 +197,14 @@ will use to develop cookbooks and manage your Chef environment.
     sudo apt-get install git build-essential -y
     ```
 
-1. Install Chef with the omnibus installer script,
+1. Install Chef using the latest 11.x package from their page, e.g:
     ```
-    curl -L https://www.opscode.com/chef/install.sh | sudo bash
+    wget https://opscode-omnibus-packages.s3.amazonaws.com/debian/6/x86_64/chef_11.18.12-1_amd64.deb
+    dpkg -i chef_11.18.12-1_amd64.deb
     ```
 
 1. The next few steps are derived from following the Chef Workstation
-[installation instructions](http://docs.opscode.com/install_workstation.html)
+[installation instructions](http://docs.chef.io/open_source/install_workstation.html)
 When finished, you should have a copy of the Chef Server's "validation" PEM
 file, it's `admin.pem` file, and a `knife.rb` file that allows you to
 interact with the Chef Server.
@@ -237,7 +238,7 @@ example of the set up process,
     ```
     WARNING: No knife configuration file found
     Where should I put the config file? ~/chef-repo/.chef/knife.rb
-    Please enter the chef server URL: https://107.178.217.81:443
+    Please enter the chef server URL: https://107.178.0.1:443
     Please enter a name for the new user: erjohnso
     Please enter the existing admin name: admin
     Please enter the location of the existing admin's private key: ~/chef-repo/.chef/admin.pem
@@ -307,7 +308,7 @@ authorization with,
 1. Once setup, you can then use knife-google to create and bootstrap a new
 node with,
     ```
-    knife google server create knife-test -m n1-standard-1 -I debian-7-wheezy-v20150423-Z us-central1-b -i ~/.ssh/google_compute_engine -x $USER
+    knife google server create knife-test -m n1-standard-1 -I debian-7-wheezy-v20150423 -Z us-central1-b -i ~/.ssh/google_compute_engine -x $USER
     ```
 
 1. Once the instance is created and the node registered with the Chef Server,
